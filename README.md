@@ -21,7 +21,7 @@ This GitHub action applies to pull requests and populates 3 output variables wit
 
 ### Outputs
 
-All output values are either a space-separated string, or a JSON encoded array.
+All output values are either a newline-separated string, or a JSON encoded array.
 
 -   **`files_created`**: Created files
 -   **`files_updated`**: Updated files
