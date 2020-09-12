@@ -1,126 +1,126 @@
-import * as core from "@actions/core";
-import { context, getOctokit } from "@actions/github";
+import * as core from "@actions/core"
+import { context, getOctokit } from "@actions/github"
 
-type GitHub = ReturnType<typeof getOctokit>;
+type GitHub = ReturnType<typeof getOctokit>
 
 interface File {
-    readonly status: string;
-    readonly filename: string;
-    readonly previous_filename?: string;
+    readonly status: string
+    readonly filename: string
+    readonly previous_filename?: string
 }
 
 class ChangedFiles {
-    readonly updated: string[] = [];
-    readonly created: string[] = [];
-    readonly deleted: string[] = [];
+    readonly updated: string[] = []
+    readonly created: string[] = []
+    readonly deleted: string[] = []
 
     constructor(private readonly pattern: RegExp) {}
 
     apply(f: File): void {
         if (!this.pattern.test(f.filename)) {
-            return;
+            return
         }
         switch (f.status) {
             case "added":
-                this.created.push(f.filename);
-                break;
+                this.created.push(f.filename)
+                break
             case "removed":
-                this.deleted.push(f.filename);
-                break;
+                this.deleted.push(f.filename)
+                break
             case "modified":
-                this.updated.push(f.filename);
-                break;
+                this.updated.push(f.filename)
+                break
             case "renamed":
-                this.created.push(f.filename);
+                this.created.push(f.filename)
                 if (f.previous_filename && this.pattern.test(f.previous_filename)) {
-                    this.deleted.push(f.previous_filename);
+                    this.deleted.push(f.previous_filename)
                 }
         }
     }
 }
 
 async function getChangedFiles(client: GitHub, prNumber: number): Promise<ChangedFiles> {
-    const pattern = core.getInput("pattern");
-    const changedFiles = new ChangedFiles(new RegExp(pattern.length ? pattern : ".*"));
+    const pattern = core.getInput("pattern")
+    const changedFiles = new ChangedFiles(new RegExp(pattern.length ? pattern : ".*"))
     const iterator = client.paginate.iterator(client.rest.pulls.listFiles, {
         owner: context.repo.owner,
         repo: context.repo.repo,
         pull_number: prNumber,
         per_page: 100,
-    });
+    })
     for await (const { data: files } of iterator) {
-        files.forEach(f => changedFiles.apply(f));
+        files.forEach(f => changedFiles.apply(f))
     }
-    return changedFiles;
+    return changedFiles
 }
 
 function extractPrNumber(): number | undefined {
-    const prNumberInput = core.getInput("pr-number");
+    const prNumberInput = core.getInput("pr-number")
 
     // If user provides pull request number, we fetch and return that particular pull request
     if (prNumberInput) {
-        return parseInt(prNumberInput, 10);
+        return parseInt(prNumberInput, 10)
     }
 
     // Try to infer the pull request from the event's context
     if (context.payload.pull_request) {
-        return context.payload.pull_request.number;
+        return context.payload.pull_request.number
     }
 
     // FIXME: This is a hack to get the PR number from the "merge_group" event
     if (context.payload["merge_group"]) {
-        const match = /pr-(\d+)-/.exec(context.payload["merge_group"]["head_ref"])?.[1];
+        const match = /pr-(\d+)-/.exec(context.payload["merge_group"]["head_ref"])?.[1]
         if (match) {
-            return parseInt(match, 10);
+            return parseInt(match, 10)
         }
     }
 
-    return undefined;
+    return undefined
 }
 
 function getEncoder(): (files: string[]) => string {
-    const encoding = core.getInput("result-encoding") || "string";
+    const encoding = core.getInput("result-encoding") || "string"
     switch (encoding) {
         case "json":
-            return JSON.stringify;
+            return JSON.stringify
         case "string":
-            return files => files.join(" ");
+            return files => files.join("\n")
         default:
-            throw new Error("'result-encoding' must be either 'string' or 'json'");
+            throw new Error("'result-encoding' must be either 'string' or 'json'")
     }
 }
 
 async function run(): Promise<void> {
-    core.debug(`event: ${JSON.stringify(context)}`);
-    const token = core.getInput("repo-token", { required: true });
-    const client = getOctokit(token);
+    core.debug(`event: ${JSON.stringify(context)}`)
+    const token = core.getInput("repo-token", { required: true })
+    const client = getOctokit(token)
 
-    const pr = extractPrNumber();
+    const pr = extractPrNumber()
     if (!pr) {
-        core.setFailed(`Could not get pull request from context, exiting`);
-        return;
+        core.setFailed(`Could not get pull request from context, exiting`)
+        return
     }
 
-    core.debug(`calculating changed files for pr #${pr}`);
+    core.debug(`calculating changed files for pr #${pr}`)
 
-    const changedFiles = await getChangedFiles(client, pr);
+    const changedFiles = await getChangedFiles(client, pr)
 
-    const encoder = getEncoder();
-
-    let hasChanged = false;
+    const encoder = getEncoder()
+    
+    let hasChanged = false
     const totalModified =
-        changedFiles.created.length + changedFiles.updated.length + changedFiles.deleted.length;
+        changedFiles.created.length + changedFiles.updated.length + changedFiles.deleted.length
     if (totalModified > 0) {
-        hasChanged = true;
+        hasChanged = true
     }
 
-    core.setOutput("changed", String(hasChanged));
-    core.setOutput("files_created", encoder(changedFiles.created));
-    core.setOutput("files_updated", encoder(changedFiles.updated));
-    core.setOutput("files_deleted", encoder(changedFiles.deleted));
+    core.setOutput("changed", String(hasChanged))
+    core.setOutput("files_created", encoder(changedFiles.created))
+    core.setOutput("files_updated", encoder(changedFiles.updated))
+    core.setOutput("files_deleted", encoder(changedFiles.deleted))
 }
 
 run().catch(err => {
-    console.error(err);
-    core.setFailed(`Unhandled error: ${err}`);
-});
+    console.error(err)
+    core.setFailed(`Unhandled error: ${err}`)
+})

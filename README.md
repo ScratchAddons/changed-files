@@ -21,7 +21,7 @@ This GitHub action applies to pull request and merge group workflow triggers and
 
 ### Outputs
 
-All output values are either a space-separated string, or a JSON encoded array.
+All output values are either a newline-separated string, or a JSON encoded array.
 
 -   **`files_created`**: Created files
 -   **`files_updated`**: Updated files
