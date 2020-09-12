@@ -9,7 +9,8 @@
     },
     "dependencies": {
         "@actions/core": "1.10.0",
-        "@actions/github": "5.1.1"
+        "@actions/github": "5.1.1",
+        "ts-node": "^9.0.0"
     },
     "devDependencies": {
         "@types/node": "18.15.5",
@@ -54,9 +55,10 @@
     },
     "prettier": {
         "arrowParens": "avoid",
+        "semi": false,
         "trailingComma": "all",
         "singleQuote": false,
-        "printWidth": 100,
+        "printWidth": 120,
         "tabWidth": 4
     }
 }
