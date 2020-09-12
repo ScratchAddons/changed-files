@@ -20,6 +20,7 @@
         "eslint-config-prettier": "8.8.0",
         "eslint-plugin-prettier": "4.2.1",
         "prettier": "2.8.5",
+        "ts-node": "^10.9.1",
         "typescript": "5.0.2"
     },
     "eslintConfig": {
@@ -54,9 +55,10 @@
     },
     "prettier": {
         "arrowParens": "avoid",
+        "semi": false,
         "trailingComma": "all",
         "singleQuote": false,
-        "printWidth": 100,
+        "printWidth": 120,
         "tabWidth": 4
     }
 }
