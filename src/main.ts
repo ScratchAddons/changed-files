@@ -10,10 +10,13 @@ interface File {
 }
 
 interface Commit {
-    readonly sha: string
     readonly author: object
-    readonly message: string
+    readonly committer: object
     readonly distinct: boolean
+    readonly id: string
+    readonly message: string
+    readonly timestamp: string
+    readonly tree_id: string
     readonly url: string
 }
 
@@ -75,7 +78,7 @@ async function getChangedFilesPush(client: GitHub, commits: Array<Commit>): Prom
             const commitData = await client.repos.getCommit({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                ref: commit.sha
+                ref: commit.id
             });
             commitData.data.files.forEach(f => changedFiles.apply(f))    
         }
