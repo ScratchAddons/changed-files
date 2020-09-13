@@ -134,6 +134,8 @@ async function run(): Promise<void> {
 		case 'push':
             const push = await fetchPush()
             
+            console.log(push)
+
             if (!push) {
                 core.setFailed(`Could not get push from context, exiting`)
                 return
