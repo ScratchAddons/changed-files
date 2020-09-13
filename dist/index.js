@@ -607,7 +607,8 @@ function fetchPR(client) {
 }
 function fetchPush() {
     return __awaiter(this, void 0, void 0, function* () {
-        return github_1.context.payload.push ? { commits: github_1.context.payload.push.commits } : undefined;
+        core.debug(JSON.stringify(github_1.context.payload));
+        return github_1.context.payload.commits ? { commits: github_1.context.payload.commits } : undefined;
     });
 }
 function getEncoder() {
@@ -631,6 +632,7 @@ function run() {
         switch (event) {
             case 'push':
                 const push = yield fetchPush();
+                console.log(push);
                 if (!push) {
                     core.setFailed(`Could not get push from context, exiting`);
                     return;
