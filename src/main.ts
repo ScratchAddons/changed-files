@@ -9,6 +9,14 @@ interface File {
     readonly previous_filename?: string
 }
 
+interface Commit {
+    readonly sha: string
+    readonly author: object
+    readonly message: string
+    readonly distinct: boolean
+    readonly url: string
+}
+
 class ChangedFiles {
     readonly updated: string[] = []
     readonly created: string[] = []
@@ -39,7 +47,7 @@ class ChangedFiles {
     }
 }
 
-async function getChangedFiles(client: GitHub, prNumber: number, fileCount: number): Promise<ChangedFiles> {
+async function getChangedFilesPR(client: GitHub, prNumber: number, fileCount: number): Promise<ChangedFiles> {
     const pattern = core.getInput("pattern")
     const changedFiles = new ChangedFiles(new RegExp(pattern.length ? pattern : ".*"))
     const fetchPerPage = 100
@@ -57,7 +65,25 @@ async function getChangedFiles(client: GitHub, prNumber: number, fileCount: numb
     return changedFiles
 }
 
-async function fetchPr(client: GitHub): Promise<{ number: number; changed_files: number } | undefined> {
+async function getChangedFilesPush(client: GitHub, commits: Array<Commit>): Promise<ChangedFiles> {
+    const pattern = core.getInput("pattern")
+    const changedFiles = new ChangedFiles(new RegExp(pattern.length ? pattern : ".*"))
+    
+    await commits.forEach(async commit => {
+ 	    core.debug(`Calling client.repos.getCommit() with ref {commit.sha}`)
+        if (commit.distinct) {
+            const commitData = await client.repos.getCommit({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: commit.sha
+            });
+            commitData.data.files.forEach(f => changedFiles.apply(f))    
+        }
+    })
+    return changedFiles
+}
+
+async function fetchPR(client: GitHub): Promise<{ number: number; changed_files: number } | undefined> {
     const prNumberInput = core.getInput("pr-number")
 
     // If user provides pull request number, we fetch and return that particular pull request
@@ -79,6 +105,10 @@ async function fetchPr(client: GitHub): Promise<{ number: number; changed_files:
         : undefined
 }
 
+async function fetchPush(): Promise<{ commits: Array<Commit> } | undefined> {
+    return context.payload.push ? { commits: context.payload.push.commits } : undefined
+}
+
 function getEncoder(): (files: string[]) => string {
     const encoding = core.getInput("result-encoding") || "string"
     switch (encoding) {
@@ -93,16 +123,40 @@ function getEncoder(): (files: string[]) => string {
 
 async function run(): Promise<void> {
     const token = core.getInput("repo-token", { required: true })
+    const eventInput = core.getInput("event")
+    const event = eventInput ? eventInput : context.eventName
     const client = getOctokit(token)
-    const pr = await fetchPr(client)
 
-    if (!pr) {
-        core.setFailed(`Could not get pull request from context, exiting`)
-        return
+    let changedFiles
+
+    switch(event) {
+		case 'push':
+            const push = await fetchPush()
+            
+            if (!push) {
+                core.setFailed(`Could not get push from context, exiting`)
+                return
+            }
+        
+            core.debug(`${push.commits} commits found`)
+
+            changedFiles = await getChangedFilesPush(client, push.commits)
+            break;
+
+        case 'pull_request':
+            const pr = await fetchPR(client)
+
+            if (!pr) {
+                core.setFailed(`Could not get pull request from context, exiting`)
+                return
+            }
+        
+            core.debug(`${pr.changed_files} changed files for pr #${pr.number}`)
+
+            changedFiles = await getChangedFilesPR(client, pr.number, pr.changed_files)
+            break;
     }
 
-    core.debug(`${pr.changed_files} changed files for pr #${pr.number}`)
-    const changedFiles = await getChangedFiles(client, pr.number, pr.changed_files)
 
     const encoder = getEncoder()
 
