@@ -106,6 +106,7 @@ async function fetchPR(client: GitHub): Promise<{ number: number; changed_files:
 }
 
 async function fetchPush(): Promise<{ commits: Array<Commit> } | undefined> {
+    core.debug(JSON.stringify(context.payload))
     return context.payload.push ? { commits: context.payload.push.commits } : undefined
 }
 
