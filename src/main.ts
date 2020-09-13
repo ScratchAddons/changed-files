@@ -135,10 +135,12 @@ async function run(): Promise<void> {
 		case 'push':
             const push = await fetchPush()
             
+            core.debug
             console.log(push)
+            core.debug(JSON.stringify(context.payload))
 
             if (!push) {
-                core.setFailed(`Could not get push from context, exiting`)
+                core.setFailed(`Could not get push from context, exiting ${JSON.stringify(context.payload)}`)
                 return
             }
         
