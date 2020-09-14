@@ -10,10 +10,13 @@ interface File {
 }
 
 interface Commit {
-    readonly sha: string
     readonly author: object
-    readonly message: string
+    readonly committer: object
     readonly distinct: boolean
+    readonly id: string
+    readonly message: string
+    readonly timestamp: string
+    readonly tree_id: string
     readonly url: string
 }
 
@@ -65,18 +68,19 @@ async function getChangedFilesPR(client: GitHub, prNumber: number): Promise<Chan
 async function getChangedFilesPush(client: GitHub, commits: Array<Commit>): Promise<ChangedFiles> {
     const pattern = core.getInput("pattern")
     const changedFiles = new ChangedFiles(new RegExp(pattern.length ? pattern : ".*"))
-
-    await commits.forEach(async commit => {
-        core.debug(`Calling client.repos.getCommit() with ref {commit.sha}`)
+    
+    await Promise.all(commits.map(async commit => {
+        core.debug(`Calling client.repos.getCommit() with ref ${commit.id}`)
         if (commit.distinct) {
             const commitData = await client.repos.getCommit({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                ref: commit.sha
-            })
-            commitData.data.files.forEach(f => changedFiles.apply(f))
+                ref: commit.id
+            });
+            commitData.data.files.forEach(f => changedFiles.apply(f))    
         }
-    })
+    }))		
+
     return changedFiles
 }
 
@@ -105,7 +109,7 @@ function extractPrNumber(): number | undefined {
 }
 
 async function fetchPush(): Promise<{ commits: Array<Commit> } | undefined> {
-    return context.payload['push'] ? { commits: context.payload['push'].commits } : undefined
+    return context.payload['commits'] ? { commits: context.payload['commits'] } : undefined
 }
 
 function getEncoder(): (files: string[]) => string {
@@ -128,34 +132,30 @@ async function run(): Promise<void> {
 
     let changedFiles
 
-    switch (event) {
+    switch(event) {
         case 'push':
             const push = await fetchPush()
-
             if (!push) {
                 core.setFailed(`Could not get push from context, exiting`)
                 return
             }
-
-            core.debug(`${push.commits} commits found`)
-
+            core.debug(`${push.commits.length} commits found`)
             changedFiles = await getChangedFilesPush(client, push.commits)
-            break
+            break;
 
         case 'pull_request':
             const pr = extractPrNumber()
-
             if (!pr) {
                 core.setFailed(`Could not get pull request from context, exiting`)
                 return
             }
-
             core.debug(`calculating changed files for pr #${pr}`)
-
             changedFiles = await getChangedFilesPR(client, pr)
             break
-    }
 
+        default:
+            changedFiles = new ChangedFiles(/?/)
+    }
 
     const encoder = getEncoder()
 
