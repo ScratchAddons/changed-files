@@ -570,17 +570,17 @@ function getChangedFilesPush(client, commits) {
     return __awaiter(this, void 0, void 0, function* () {
         const pattern = core.getInput("pattern");
         const changedFiles = new ChangedFiles(new RegExp(pattern.length ? pattern : ".*"));
-        yield commits.forEach((commit) => __awaiter(this, void 0, void 0, function* () {
-            core.debug(`Calling client.repos.getCommit() with ref {commit.sha}`);
+        yield Promise.all(commits.map((commit) => __awaiter(this, void 0, void 0, function* () {
+            core.debug(`Calling client.repos.getCommit() with ref ${commit.id}`);
             if (commit.distinct) {
                 const commitData = yield client.repos.getCommit({
                     owner: github_1.context.repo.owner,
                     repo: github_1.context.repo.repo,
-                    ref: commit.sha
+                    ref: commit.id
                 });
                 commitData.data.files.forEach(f => changedFiles.apply(f));
             }
-        }));
+        })));
         return changedFiles;
     });
 }
@@ -632,12 +632,11 @@ function run() {
         switch (event) {
             case 'push':
                 const push = yield fetchPush();
-                console.log(push);
                 if (!push) {
                     core.setFailed(`Could not get push from context, exiting`);
                     return;
                 }
-                core.debug(`${push.commits} commits found`);
+                core.debug(`${push.commits.length} commits found`);
                 changedFiles = yield getChangedFilesPush(client, push.commits);
                 break;
             case 'pull_request':
