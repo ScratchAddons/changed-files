@@ -72,8 +72,8 @@ async function getChangedFilesPush(client: GitHub, commits: Array<Commit>): Prom
     const pattern = core.getInput("pattern")
     const changedFiles = new ChangedFiles(new RegExp(pattern.length ? pattern : ".*"))
     
-    await commits.forEach(async commit => {
- 	    core.debug(`Calling client.repos.getCommit() with ref {commit.sha}`)
+    await Promise.all(commits.map(async commit => {
+        core.debug(`Calling client.repos.getCommit() with ref ${commit.id}`)
         if (commit.distinct) {
             const commitData = await client.repos.getCommit({
                 owner: context.repo.owner,
@@ -82,7 +82,8 @@ async function getChangedFilesPush(client: GitHub, commits: Array<Commit>): Prom
             });
             commitData.data.files.forEach(f => changedFiles.apply(f))    
         }
-    })
+    }))		
+
     return changedFiles
 }
 
@@ -134,19 +135,18 @@ async function run(): Promise<void> {
     let changedFiles
 
     switch(event) {
-		case 'push':
+        case 'push':
             const push = await fetchPush()
             
-            console.log(push)
-
             if (!push) {
                 core.setFailed(`Could not get push from context, exiting`)
                 return
             }
         
-            core.debug(`${push.commits} commits found`)
+            core.debug(`${push.commits.length} commits found`)
 
             changedFiles = await getChangedFilesPush(client, push.commits)
+
             break;
 
         case 'pull_request':
@@ -162,7 +162,6 @@ async function run(): Promise<void> {
             changedFiles = await getChangedFilesPR(client, pr.number, pr.changed_files)
             break;
     }
-
 
     const encoder = getEncoder()
 
