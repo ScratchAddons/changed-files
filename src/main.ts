@@ -87,6 +87,10 @@ async function getChangedFilesPush(client: GitHub, commits: Array<Commit>): Prom
     return changedFiles
 }
 
+async function fetchPush(): Promise<{ commits: Array<Commit> } | undefined> {
+    return context.payload.commits ? { commits: context.payload.commits } : undefined
+}
+
 async function fetchPR(client: GitHub): Promise<{ number: number; changed_files: number } | undefined> {
     const prNumberInput = core.getInput("pr-number")
 
@@ -107,11 +111,6 @@ async function fetchPR(client: GitHub): Promise<{ number: number; changed_files:
               changed_files: context.payload.pull_request["changed_files"],
           }
         : undefined
-}
-
-async function fetchPush(): Promise<{ commits: Array<Commit> } | undefined> {
-    core.debug(JSON.stringify(context.payload))
-    return context.payload.commits ? { commits: context.payload.commits } : undefined
 }
 
 function getEncoder(): (files: string[]) => string {
@@ -137,28 +136,21 @@ async function run(): Promise<void> {
     switch(event) {
         case 'push':
             const push = await fetchPush()
-            
             if (!push) {
                 core.setFailed(`Could not get push from context, exiting`)
                 return
             }
-        
             core.debug(`${push.commits.length} commits found`)
-
             changedFiles = await getChangedFilesPush(client, push.commits)
-
             break;
 
         case 'pull_request':
             const pr = await fetchPR(client)
-
             if (!pr) {
                 core.setFailed(`Could not get pull request from context, exiting`)
                 return
             }
-        
             core.debug(`${pr.changed_files} changed files for pr #${pr.number}`)
-
             changedFiles = await getChangedFilesPR(client, pr.number, pr.changed_files)
             break;
     }

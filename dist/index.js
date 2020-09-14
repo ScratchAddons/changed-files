@@ -584,6 +584,11 @@ function getChangedFilesPush(client, commits) {
         return changedFiles;
     });
 }
+function fetchPush() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return github_1.context.payload.commits ? { commits: github_1.context.payload.commits } : undefined;
+    });
+}
 function fetchPR(client) {
     return __awaiter(this, void 0, void 0, function* () {
         const prNumberInput = core.getInput("pr-number");
@@ -603,12 +608,6 @@ function fetchPR(client) {
                 changed_files: github_1.context.payload.pull_request["changed_files"],
             }
             : undefined;
-    });
-}
-function fetchPush() {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.debug(JSON.stringify(github_1.context.payload));
-        return github_1.context.payload.commits ? { commits: github_1.context.payload.commits } : undefined;
     });
 }
 function getEncoder() {
