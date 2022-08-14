@@ -7,25 +7,26 @@
         "pack": "ncc build"
     },
     "dependencies": {
-        "@actions/core": "1.9.1",
-        "@actions/github": "5.0.3",
-        "ts-node": "^9.0.0"
+        "@actions/core": "^1.10.0",
+        "@actions/github": "^5.1.1",
+        "ts-node": "^10.9.1"
     },
     "devDependencies": {
-        "@types/node": "18.7.14",
+        "@types/node": "^18.11.9",
         "@typescript-eslint/eslint-plugin": "5.36.1",
         "@typescript-eslint/parser": "5.36.1",
         "@vercel/ncc": "0.34.0",
         "eslint": "8.23.0",
-        "eslint-config-prettier": "8.5.0",
-        "eslint-plugin-prettier": "4.2.1",
-        "prettier": "2.7.1",
-        "typescript": "4.8.2"
+        "eslint-config-prettier": "^8.5.0",
+        "eslint-plugin-prettier": "^4.2.1",
+        "prettier": "^2.8.0",
+        "typescript": "^4.8.4"
     },
     "eslintConfig": {
         "parser": "@typescript-eslint/parser",
         "extends": [
             "plugin:@typescript-eslint/recommended",
+            "prettier/@typescript-eslint",
             "plugin:prettier/recommended"
         ],
         "parserOptions": {
@@ -54,9 +55,10 @@
     },
     "prettier": {
         "arrowParens": "avoid",
+        "semi": false,
         "trailingComma": "all",
         "singleQuote": false,
-        "printWidth": 100,
+        "printWidth": 120,
         "tabWidth": 4
     }
 }
