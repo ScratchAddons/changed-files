@@ -8,7 +8,7 @@
     },
     "dependencies": {
         "@actions/core": "^1.10.0",
-        "@actions/github": "^5.0.3",
+        "@actions/github": "^5.1.1",
         "ts-node": "^10.9.1"
     },
     "devDependencies": {
