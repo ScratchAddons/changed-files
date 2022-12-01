@@ -50,22 +50,43 @@ class ChangedFiles {
     }
 }
 
-async function getChangedFilesPR(client: GitHub, prNumber: number, fileCount: number): Promise<ChangedFiles> {
+async function getChangedFilesPR(client: GitHub, prNumber: number): Promise<ChangedFiles> {
     const pattern = core.getInput("pattern")
     const changedFiles = new ChangedFiles(new RegExp(pattern.length ? pattern : ".*"))
-    const fetchPerPage = 100
-    for (let pageIndex = 1; (pageIndex - 1) * fetchPerPage < fileCount; pageIndex++) {
-        const listFilesResponse = await client.rest.pulls.listFiles({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            pull_number: prNumber,
-            page: pageIndex,
-            per_page: fetchPerPage,
-        })
-        core.debug(`Fetched page ${pageIndex} with ${listFilesResponse.data.length} changed files`)
-        listFilesResponse.data.forEach(f => changedFiles.apply(f))
+    const iterator = client.paginate.iterator(client.rest.pulls.listFiles, {
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        pull_number: prNumber,
+        per_page: 100,
+    });
+    for await (const { data: files } of iterator) {
+        files.forEach(f => changedFiles.apply(f))
     }
     return changedFiles
+}
+
+function extractPrNumber(): number | undefined {
+    const prNumberInput = core.getInput("pr-number")
+
+    // If user provides pull request number, we fetch and return that particular pull request
+    if (prNumberInput) {
+        return parseInt(prNumberInput, 10)
+    }
+
+    // Try to infer the pull request from the event's context
+    if (context.payload.pull_request) {
+        return context.payload.pull_request.number
+    }
+
+    // FIXME: This is a hack to get the PR number from the "merge_group" event
+    if (context.payload["merge_group"]) {
+        const match = /pr-(\d+)-/.exec(context.payload["merge_group"]["head_ref"])?.[1]
+        if (match) {
+            return parseInt(match, 10)
+        }
+    }
+
+    return undefined
 }
 
 async function getChangedFilesPush(client: GitHub, commits: Array<Commit>): Promise<ChangedFiles> {
@@ -88,38 +109,16 @@ async function getChangedFilesPush(client: GitHub, commits: Array<Commit>): Prom
 }
 
 async function fetchPush(): Promise<{ commits: Array<Commit> } | undefined> {
-    return context.payload.commits ? { commits: context.payload.commits } : undefined
+    return context.payload['commits'] ? { commits: context.payload['commits'] } : undefined
 }
 
-async function fetchPR(client: GitHub): Promise<{ number: number; changed_files: number } | undefined> {
-    const prNumberInput = core.getInput("pr-number")
-
-    // If user provides pull request number, we fetch and return that particular pull request
-    if (prNumberInput) {
-        const { data: pr } = await client.rest.pulls.get({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            pull_number: parseInt(prNumberInput, 10),
-        })
-        return pr
-    }
-
-    // Otherwise, we infer the pull request based on the the event's context
-    return context.payload.pull_request
-        ? {
-              number: context.payload.pull_request.number,
-              changed_files: context.payload.pull_request["changed_files"],
-          }
-        : undefined
-}
-
-function getEncoder(): (files: string[]) => string {
+function getEncoder(): (files: string[] | undefined) => string {
     const encoding = core.getInput("result-encoding") || "string"
     switch (encoding) {
         case "json":
-            return JSON.stringify
+            return files => files ? JSON.stringify(files) : '[]'
         case "string":
-            return files => files.join("\n")
+            return files => files ? files.join("\n") : ''
         default:
             throw new Error("'result-encoding' must be either 'string' or 'json'")
     }
@@ -142,17 +141,20 @@ async function run(): Promise<void> {
             }
             core.debug(`${push.commits.length} commits found`)
             changedFiles = await getChangedFilesPush(client, push.commits)
-            break;
+            break
 
         case 'pull_request':
-            const pr = await fetchPR(client)
+   			const pr = extractPrNumber();
             if (!pr) {
                 core.setFailed(`Could not get pull request from context, exiting`)
                 return
             }
-            core.debug(`${pr.changed_files} changed files for pr #${pr.number}`)
-            changedFiles = await getChangedFilesPR(client, pr.number, pr.changed_files)
-            break;
+            core.debug(`calculating changed files for pr #${pr}`)
+            changedFiles = await getChangedFilesPR(client, pr)
+            break
+
+        default:
+            changedFiles = new ChangedFiles(/?/)
     }
 
     const encoder = getEncoder()

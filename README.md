@@ -1,6 +1,6 @@
 # Changed Files Action
 
-This GitHub action applies to pull requests and populates 3 output variables with the modified files: "files_created", "files_updated", and "files_deleted".
+This GitHub action applies to pull request and merge group workflow triggers and populates 3 output variables with the modified files: "files_created", "files_updated", and "files_deleted".
 
 ### Workflow Config Example
 

@@ -1,10 +1,11 @@
 name: "Changed Files Exporter"
 description: "Exports the files created, modified or deleted by a PR"
-author: "Duarte Nunes <duarten@hey.com>"
+author: "Duarte Nunes <duarte at fastmail.com>"
 inputs:
     repo-token:
         description: "The GITHUB_TOKEN secret"
         required: true
+        default: ${{ github.token }}
     pattern:
         description: "A regular expression to filter the outputs by."
         required: false
