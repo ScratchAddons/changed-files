@@ -72,12 +72,12 @@ async function getChangedFilesPush(client: GitHub, commits: Array<Commit>): Prom
     await Promise.all(commits.map(async commit => {
         core.debug(`Calling client.repos.getCommit() with ref ${commit.id}`)
         if (commit.distinct) {
-            const commitData = await client.repos.getCommit({
+            const commitData = await client.rest.repos.getCommit({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 ref: commit.id
             });
-            commitData.data.files.forEach(f => changedFiles.apply(f))    
+            commitData.data.files?.forEach(f => changedFiles.apply(f))    
         }
     }))		
 
