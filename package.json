@@ -1,10 +1,12 @@
 {
+    "name": "@scratchaddons/changed-files",
     "version": "3.3.0",
     "main": "lib/main.js",
     "scripts": {
         "build": "tsc",
         "lint": "eslint --fix '**/*.ts'",
-        "pack": "ncc build"
+        "pack": "ncc build",
+        "compile-ci": "npm run build && npm run pack"
     },
     "dependencies": {
         "@actions/core": "^1.10.0",
@@ -15,7 +17,7 @@
         "@types/node": "^18.11.9",
         "@typescript-eslint/eslint-plugin": "^4.0.0",
         "@typescript-eslint/parser": "^3.10.1",
-        "@zeit/ncc": "^0.22.3",
+        "@vercel/ncc": "^0.34.0",
         "eslint": "^7.32.0",
         "eslint-config-prettier": "^8.5.0",
         "eslint-plugin-prettier": "^4.2.1",

@@ -55,7 +55,7 @@ async function getChangedFilesPR(client: GitHub, prNumber: number, fileCount: nu
     const changedFiles = new ChangedFiles(new RegExp(pattern.length ? pattern : ".*"))
     const fetchPerPage = 100
     for (let pageIndex = 1; (pageIndex - 1) * fetchPerPage < fileCount; pageIndex++) {
-        const listFilesResponse = await client.pulls.listFiles({
+        const listFilesResponse = await client.rest.pulls.listFiles({
             owner: context.repo.owner,
             repo: context.repo.repo,
             pull_number: prNumber,
@@ -75,12 +75,12 @@ async function getChangedFilesPush(client: GitHub, commits: Array<Commit>): Prom
     await Promise.all(commits.map(async commit => {
         core.debug(`Calling client.repos.getCommit() with ref ${commit.id}`)
         if (commit.distinct) {
-            const commitData = await client.repos.getCommit({
+            const commitData = await client.rest.repos.getCommit({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 ref: commit.id
             });
-            commitData.data.files.forEach(f => changedFiles.apply(f))    
+            commitData.data.files?.forEach(f => changedFiles.apply(f))    
         }
     }))		
 
@@ -96,7 +96,7 @@ async function fetchPR(client: GitHub): Promise<{ number: number; changed_files:
 
     // If user provides pull request number, we fetch and return that particular pull request
     if (prNumberInput) {
-        const { data: pr } = await client.pulls.get({
+        const { data: pr } = await client.rest.pulls.get({
             owner: context.repo.owner,
             repo: context.repo.repo,
             pull_number: parseInt(prNumberInput, 10),
