@@ -112,13 +112,13 @@ async function fetchPush(): Promise<{ commits: Array<Commit> } | undefined> {
     return context.payload['commits'] ? { commits: context.payload['commits'] } : undefined
 }
 
-function getEncoder(): (files: string[] | undefined) => string {
+function getEncoder(): (files: string[]) => string {
     const encoding = core.getInput("result-encoding") || "string"
     switch (encoding) {
         case "json":
-            return files => files ? JSON.stringify(files) : '[]'
+            return JSON.stringify
         case "string":
-            return files => files ? files.join("\n") : ''
+            return files => files.join("\n")
         default:
             throw new Error("'result-encoding' must be either 'string' or 'json'")
     }
