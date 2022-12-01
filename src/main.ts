@@ -154,7 +154,7 @@ async function run(): Promise<void> {
             break
 
         default:
-            changedFiles = new ChangedFiles(/?/)
+            changedFiles = new ChangedFiles(/./)
     }
 
     const encoder = getEncoder()
